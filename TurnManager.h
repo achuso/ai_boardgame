@@ -1,6 +1,7 @@
 #ifndef TURNMANAGER_H
 #define TURNMANAGER_H
 
+#include <set>
 #include "Board.h"
 
 class TurnManager {
@@ -8,14 +9,18 @@ public:
     enum class MoveResult { Success, InvalidMove, MoveLimitExceeded };
 
 private:
-    Board& board;
-    int currentPlayer; // tracks current player
-    int movesThisTurn; // track the number of moves made this turn
+    Board board;  
+    int currentPlayer; 
+    std::set<std::pair<int, int>> movedPieces; 
+    int movesThisTurn; 
+    int totalMoves = 0; 
 
 public:
-    TurnManager(Board& gameBoard);
+    TurnManager(const Board& gameBoard);
+    TurnManager(const TurnManager& other);
+    TurnManager& operator=(const TurnManager& other);
 
-    const Board& getBoard() const;
+    const Board* getBoard() const;
     int getCurrentPlayer() const;
     void endTurn();
     MoveResult makeMove(int fromRow, int fromCol, int toRow, int toCol);
