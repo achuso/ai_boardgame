@@ -1,3 +1,9 @@
+.vscode/
+moc_*
+.qmake.stash
+ai_boardgame
+Makefile
+
 # Prerequisites
 *.d
 
@@ -30,6 +36,3 @@
 *.exe
 *.out
 *.app
-
-#
-.vscode/
