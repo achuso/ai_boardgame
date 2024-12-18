@@ -4,27 +4,31 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QGridLayout>
-#include "Board.h"
+#include <QMessageBox>
+#include <QVBoxLayout>
+
+#include "TurnManager.h"
 #include "Minimax.h"
+#include "GameConstants.h"
 
 class GameWindow : public QMainWindow {
     Q_OBJECT
 
 private:
-    Board board;                  // Game board
-    Minimax ai;                   // AI player
-    QGridLayout* gridLayout;      // Layout for the board
-    QPushButton* buttons[7][7];   // Buttons for the 7x7 grid
-    int currentPlayer = P2_PIECE; // Start with human player
+    Board board;
+    TurnManager turnManager;
+    Minimax ai;
+    QGridLayout* gridLayout;
+    QPushButton* buttons[BOARD_SIZE][BOARD_SIZE];
 
-    // Helper to update button visuals based on board state
     void updateBoard();
-
-    // Handle player moves
     void handleCellClick(int row, int col);
+    void checkGameEnd();
 
 public:
     GameWindow(QWidget* parent = nullptr);
+    void startTurn();
+    void aiTurn();
 };
 
 #endif
