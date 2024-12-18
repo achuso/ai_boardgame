@@ -18,12 +18,33 @@ Board::Board() {
     board[6][0] = P2_PIECE;
 }
 
+// void Board::printBoard() const {
+//     std::cout << "Current Board State:" << std::endl;
+//     for (int row = 0; row < BOARD_SIZE; ++row) {
+//         for (int col = 0; col < BOARD_SIZE; ++col) {
+//             int piece = board[row][col];
+//             if (piece == EMPTY) {
+//                 std::cout << ". "; // Represent empty cells
+//             } else if (piece == P1_PIECE) {
+//                 std::cout << "▲ "; // Player 1's pieces
+//             } else if (piece == P2_PIECE) {
+//                 std::cout << "● "; // Player 2's pieces
+//             }
+//         }
+//         std::cout << std::endl;
+//     }
+//     std::cout << std::endl;
+// }
+
 bool Board::executeMove(int player, int fromRow, int fromCol, int toRow, int toCol) {
     if (!isValidMove(player, fromRow, fromCol, toRow, toCol)) {
         return false;
     }
-    board[toRow][toCol] = player;
-    board[fromRow][fromCol] = EMPTY;
+
+    board[toRow][toCol] = player;       // Move the piece
+    board[fromRow][fromCol] = EMPTY;   // Clear the original position
+    std::cout << "Board updated: (" << fromRow << ", " << fromCol << ") -> ("
+              << toRow << ", " << toCol << ")\n";
     return true;
 }
 
@@ -82,15 +103,13 @@ bool Board::inBounds(int row, int col) const {
 }
 
 bool Board::isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) const {
-    if (!inBounds(fromRow, fromCol) || !inBounds(toRow, toCol))
-        return false;
-    if (board[fromRow][fromCol] != player)
-        return false;
-    if (board[toRow][toCol] != EMPTY)
-        return false;
-    if (fromRow != toRow && fromCol != toCol)
-        return false;
-    if (std::abs(fromRow - toRow) > 1 || std::abs(fromCol - toCol) > 1)
-        return false;
-    return true;
+    // ensure the move starts from a valid position and moves to an empty space
+    if (!inBounds(fromRow, fromCol) || !inBounds(toRow, toCol)) return false;
+    if (board[fromRow][fromCol] != player) return false;
+    if (board[toRow][toCol] != EMPTY) return false; 
+
+    // restrict to horizontal/vertical adjacent moves
+    int rowDiff = std::abs(fromRow - toRow);
+    int colDiff = std::abs(fromCol - toCol);
+    return (rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1);
 }

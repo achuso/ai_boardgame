@@ -14,6 +14,10 @@ private:
 public:
     Board();
 
+    constexpr Board(const Board& other) = default;
+    constexpr Board& operator=(const Board& other) = default;
+
+    void printBoard() const; 
     bool inBounds(int row, int col) const;
     bool executeMove(int player, int fromRow, int fromCol, int toRow, int toCol);
     void checkAndCapture(int player, int row, int col);
