@@ -36,30 +36,28 @@ Board::GameResult TurnManager::getGameState() const {
 }
 
 TurnManager::MoveResult TurnManager::makeMove(int fromRow, int fromCol, int toRow, int toCol) {
-    // Check if we exceeded the move limit
-    if (isMoveLimitExceeded()) {
+    // check if we exceeded the move limit
+    if (isMoveLimitExceeded())
         return MoveResult::MoveLimitExceeded;
-    }
 
-    // Check if the piece at the target cell has already moved
-    // Now we check if the destination cell has been used, after a piece moves, that piece "lives" at the toRow,toCol.
-    if (movedPieces.count({fromRow, fromCol}) || movedPieces.count({toRow, toCol})) {
-        // The above condition ensures that if this piece was just moved to (toRow, toCol) previously, 
-        // it won't move again from that new spot.
+    // check if the piece at the target cell has already moved
+    if (movedPieces.count({fromRow, fromCol}) || movedPieces.count({toRow, toCol}))
         return MoveResult::InvalidMove;
-    }
 
     if (board.executeMove(currentPlayer, fromRow, fromCol, toRow, toCol)) {
         movesThisTurn++;
         totalMoves++;
-        // Insert the new position of the piece into movedPieces.
         movedPieces.insert({toRow, toCol});
+
+        // restore capturing call
+        board.checkAndCapture(currentPlayer, toRow, toCol);
 
         return MoveResult::Success;
     }
 
     return MoveResult::InvalidMove;
 }
+
 
 void TurnManager::endTurn() {
     movesThisTurn = 0;
