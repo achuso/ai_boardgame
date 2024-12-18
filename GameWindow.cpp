@@ -1,4 +1,5 @@
 #include "GameWindow.h"
+#include <QMessageBox>
 #include <iostream>
 
 GameWindow::GameWindow(QWidget* parent, int aiDepth)
@@ -21,6 +22,7 @@ GameWindow::GameWindow(QWidget* parent, int aiDepth)
     }
 
     updateBoard();
+    startTurn();
 }
 
 void GameWindow::updateBoard() {
@@ -28,7 +30,6 @@ void GameWindow::updateBoard() {
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
             int piece = b->getPiece(row, col);
-
             buttons[row][col]->setStyleSheet(""); // Reset style
             if (piece == EMPTY) {
                 buttons[row][col]->setText("");
@@ -48,10 +49,12 @@ void GameWindow::handleCellClick(int row, int col) {
     const Board* b = turnManager.getBoard();
 
     if (fromRow == -1 && fromCol == -1) {
+        // select the piece
         if (b->getPiece(row, col) == turnManager.getCurrentPlayer()) {
             fromRow = row;
             fromCol = col;
             buttons[row][col]->setStyleSheet("background-color: blue;");
+            // enable entire board for selecting a destination
             for (int r = 0; r < BOARD_SIZE; ++r) {
                 for (int c = 0; c < BOARD_SIZE; ++c) {
                     buttons[r][c]->setEnabled(true);
@@ -60,20 +63,21 @@ void GameWindow::handleCellClick(int row, int col) {
         } else {
             QMessageBox::warning(this, "Invalid Selection", "Please select your own piece!");
         }
-
     } else {
+        // attempt the move
         auto moveResult = turnManager.makeMove(fromRow, fromCol, row, col);
         buttons[fromRow][fromCol]->setStyleSheet("");
 
         if (moveResult == TurnManager::MoveResult::Success) {
             updateBoard();
-
+            checkGameEnd();
             fromRow = fromCol = -1;
 
             if (turnManager.isMoveLimitExceeded()) {
                 turnManager.endTurn();
                 startTurn();
             } else {
+                // revert to enabling only player's pieces
                 if (turnManager.getCurrentPlayer() == P2_PIECE) {
                     for (int r = 0; r < BOARD_SIZE; ++r) {
                         for (int c = 0; c < BOARD_SIZE; ++c) {
@@ -82,18 +86,16 @@ void GameWindow::handleCellClick(int row, int col) {
                     }
                 }
             }
-
         } else {
-            QMessageBox::warning(this, "Invalid Move",
-                                  moveResult == TurnManager::MoveResult::InvalidMove
-                                  ? "Move is invalid!"
+            QMessageBox::warning(this, "Invalid Move", 
+                                  (moveResult == TurnManager::MoveResult::InvalidMove) 
+                                  ? "Move is invalid!" 
                                   : "You cannot make more moves this turn!");
 
+            // if player clicked same piece again, reset selection
             if (row == fromRow && col == fromCol) {
-                // player clicked the same piece again, reset the selection
                 buttons[fromRow][fromCol]->setStyleSheet("");
                 fromRow = fromCol = -1;
-
                 if (turnManager.getCurrentPlayer() == P2_PIECE) {
                     for (int r = 0; r < BOARD_SIZE; ++r) {
                         for (int c = 0; c < BOARD_SIZE; ++c) {
@@ -108,15 +110,16 @@ void GameWindow::handleCellClick(int row, int col) {
 
 void GameWindow::startTurn() {
     if (turnManager.getCurrentPlayer() == P1_PIECE) {
+        std::cout << "AI's Turn...\n";
         for (int row = 0; row < BOARD_SIZE; ++row) {
             for (int col = 0; col < BOARD_SIZE; ++col) {
                 buttons[row][col]->setEnabled(false);
             }
         }
-
         aiTurn();
     } 
     else {
+        std::cout << "Human's Turn...\n";
         const Board* b = turnManager.getBoard();
         for (int row = 0; row < BOARD_SIZE; ++row) {
             for (int col = 0; col < BOARD_SIZE; ++col) {
@@ -128,8 +131,8 @@ void GameWindow::startTurn() {
 
 void GameWindow::aiTurn() {
     std::cout << "AI is calculating its move...\n";
-
     auto bestMoves = ai.findBestMoves(turnManager);
+
     if (bestMoves.empty()) {
         std::cout << "No valid moves executed by AI. Ending turn.\n";
         turnManager.endTurn();
