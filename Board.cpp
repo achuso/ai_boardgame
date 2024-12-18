@@ -56,16 +56,22 @@ void Board::captureDirection(int player, int row, int col, int dRow, int dCol) {
         int beyondRow = nextRow + dRow;
         int beyondCol = nextCol + dCol;
         if (!inBounds(beyondRow, beyondCol) || board[beyondRow][beyondCol] == player) {
-            board[nextRow][nextCol] = EMPTY; // capture piece
+            // capture opponent piece
+            board[nextRow][nextCol] = EMPTY;
         }
     }
 }
 
 void Board::checkAndCapture(int player, int row, int col) {
+    // first capture opponent pieces as per original logic
     captureDirection(player, row, col, -1, 0); // up
     captureDirection(player, row, col, 1, 0);  // down
     captureDirection(player, row, col, 0, -1); // left
     captureDirection(player, row, col, 0, 1);  // right
+
+    // now check if the piece at (row,col) itself is sandwiched
+    // if so, capture it as well
+    checkSelfCapture(row, col);
 }
 
 Board::GameResult Board::checkGameEnd() const {
@@ -88,17 +94,44 @@ int Board::getPiece(int row, int col) const {
 
 int Board::countPieces(int player) const {
     int count = 0;
-
-    for (const auto& row : board)
-        for (int cell : row)
+    for (const auto& r : board)
+        for (int cell : r)
             if (cell == player)
                 count++;
-
     return count;
 }
 
 bool Board::inBounds(int row, int col) const {
     return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+}
+
+bool Board::isBlocking(int row, int col) const {
+    // a cell is blocking if it's out-of-bounds (wall) or contains a piece (P1 or P2)
+    if (!inBounds(row, col)) return true;
+    int piece = board[row][col];
+    return (piece == P1_PIECE || piece == P2_PIECE);
+}
+
+void Board::checkSelfCapture(int row, int col) {
+    int piece = getPiece(row, col);
+    if (piece == EMPTY) return; // no piece to capture
+
+    // check vertical sandwich
+    int upRow = row - 1;
+    int downRow = row + 1;
+
+    bool verticallySandwiched = isBlocking(upRow, col) && isBlocking(downRow, col);
+
+    // check horizontal sandwich
+    int leftCol = col - 1;
+    int rightCol = col + 1;
+
+    bool horizontallySandwiched = isBlocking(row, leftCol) && isBlocking(row, rightCol);
+
+    // if sandwiched either vertically or horizontally, remove the piece
+    if (verticallySandwiched || horizontallySandwiched) {
+        board[row][col] = EMPTY; // capture the acting piece
+    }
 }
 
 bool Board::isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) const {

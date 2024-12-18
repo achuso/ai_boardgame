@@ -4,12 +4,15 @@
 #include <iostream>
 #include <array>
 #include <cassert>
+#include <cmath>
 #include "GameConstants.h"
 
 class Board {
 private:
     std::array<std::array<int, BOARD_SIZE>, BOARD_SIZE> board;
-    void captureDirection(int player, int row, int col, int dRow, int dCol);
+
+    // checks if the piece at (row,col) is sandwiched by blocking ends vertically or horizontally
+    void checkSelfCapture(int row, int col);
 
 public:
     Board();
@@ -17,8 +20,11 @@ public:
     constexpr Board(const Board& other) = default;
     constexpr Board& operator=(const Board& other) = default;
 
-    void printBoard() const; 
+    void captureDirection(int player, int row, int col, int dRow, int dCol);
     bool inBounds(int row, int col) const;
+    bool isBlocking(int row, int col) const; // helper to check if cell is blocking
+
+    void printBoard() const; 
     bool executeMove(int player, int fromRow, int fromCol, int toRow, int toCol);
     void checkAndCapture(int player, int row, int col);
     enum class GameResult { Ongoing, Draw, Player1Wins, Player2Wins };
