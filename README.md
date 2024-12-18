@@ -15,12 +15,12 @@ Game rules can be found within the repository in a PDF document.
 1. Use `qmake` or `cmake` to generate build files.  
    For example, with `qmake`:
    ```bash
-   qmake GameWindow.pro
+   qmake ai_boardgame.pro
    make
    ```
 
 2. Run the executable:
-    ```
-    ./ai_boardgame [--depth X]
+    ```bash
+    ./build/ai_boardgame [--depth X]
     ```
     where X is an optional depth parameter for the Minimax search algorithm (default=3).
