@@ -5,7 +5,6 @@
 #include <QPushButton>
 #include <QGridLayout>
 #include <QMessageBox>
-#include <QVBoxLayout>
 
 #include "TurnManager.h"
 #include "Minimax.h"
@@ -17,7 +16,7 @@ class GameWindow : public QMainWindow {
 private:
     Board board;
     TurnManager turnManager;
-    Minimax ai;
+    Minimax ai; // now ai is initialized with custom depth
     QGridLayout* gridLayout;
     QPushButton* buttons[BOARD_SIZE][BOARD_SIZE];
 
@@ -26,7 +25,7 @@ private:
     void checkGameEnd();
 
 public:
-    GameWindow(QWidget* parent = nullptr);
+    GameWindow(QWidget* parent = nullptr, int aiDepth = 3);
     void startTurn();
     void aiTurn();
 };

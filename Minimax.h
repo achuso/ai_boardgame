@@ -19,7 +19,7 @@ private:
     std::vector<Move> generateMoves(const TurnManager& turnManager, int player);
 
 public:
-    Minimax(int depth = 3);
+    Minimax(int depth);
     std::vector<Move> findBestMoves(TurnManager& turnManager);
 };
 

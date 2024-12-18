@@ -1,9 +1,8 @@
 #include "GameWindow.h"
-#include <QMessageBox>
 #include <iostream>
 
-GameWindow::GameWindow(QWidget* parent)
-    : QMainWindow(parent), board(), turnManager(board), ai(3) {
+GameWindow::GameWindow(QWidget* parent, int aiDepth)
+    : QMainWindow(parent), board(), turnManager(board), ai(aiDepth) {
     QWidget* centralWidget = new QWidget(this);
     gridLayout = new QGridLayout(centralWidget);
     centralWidget->setLayout(gridLayout);
@@ -22,7 +21,6 @@ GameWindow::GameWindow(QWidget* parent)
     }
 
     updateBoard();
-    startTurn();
 }
 
 void GameWindow::updateBoard() {
@@ -49,45 +47,33 @@ void GameWindow::handleCellClick(int row, int col) {
     static int fromRow = -1, fromCol = -1;
     const Board* b = turnManager.getBoard();
 
-    // if no piece is currently selected
     if (fromRow == -1 && fromCol == -1) {
-        // must select your own piece first
         if (b->getPiece(row, col) == turnManager.getCurrentPlayer()) {
             fromRow = row;
             fromCol = col;
             buttons[row][col]->setStyleSheet("background-color: blue;");
-
-            // enable the entire board so player can choose a destination
             for (int r = 0; r < BOARD_SIZE; ++r) {
                 for (int c = 0; c < BOARD_SIZE; ++c) {
                     buttons[r][c]->setEnabled(true);
                 }
             }
-
-        } 
-        else {
+        } else {
             QMessageBox::warning(this, "Invalid Selection", "Please select your own piece!");
         }
 
-    } 
-    else {
-        // we have a piece selected, now trying to move it
+    } else {
         auto moveResult = turnManager.makeMove(fromRow, fromCol, row, col);
-        buttons[fromRow][fromCol]->setStyleSheet(""); // reset highlight
+        buttons[fromRow][fromCol]->setStyleSheet("");
 
         if (moveResult == TurnManager::MoveResult::Success) {
             updateBoard();
 
             fromRow = fromCol = -1;
 
-            // if move limit is exceeded or turn should end
             if (turnManager.isMoveLimitExceeded()) {
                 turnManager.endTurn();
                 startTurn();
-            } 
-            else {
-                // the turn isn't over yet, so disable everything except player's pieces again
-                // to choose the next piece for the next move
+            } else {
                 if (turnManager.getCurrentPlayer() == P2_PIECE) {
                     for (int r = 0; r < BOARD_SIZE; ++r) {
                         for (int c = 0; c < BOARD_SIZE; ++c) {
@@ -97,23 +83,17 @@ void GameWindow::handleCellClick(int row, int col) {
                 }
             }
 
-        } 
-        else {
-            // move failed, show warning and dont revert to only player's pieces.
-            // keep the board fully enabled so player can try another cell.
+        } else {
             QMessageBox::warning(this, "Invalid Move",
                                   moveResult == TurnManager::MoveResult::InvalidMove
                                   ? "Move is invalid!"
                                   : "You cannot make more moves this turn!");
 
-            // since it failed, we still have a piece selected. do not reset fromRow/fromCol
-            // so the player can try another destination
             if (row == fromRow && col == fromCol) {
-                // Player clicked the same piece again, reset the selection
+                // player clicked the same piece again, reset the selection
                 buttons[fromRow][fromCol]->setStyleSheet("");
                 fromRow = fromCol = -1;
 
-                // re-enable only player's pieces after canceling selection
                 if (turnManager.getCurrentPlayer() == P2_PIECE) {
                     for (int r = 0; r < BOARD_SIZE; ++r) {
                         for (int c = 0; c < BOARD_SIZE; ++c) {
@@ -138,22 +118,20 @@ void GameWindow::startTurn() {
     } 
     else {
         const Board* b = turnManager.getBoard();
-        // enable only the human player's pieces to start
         for (int row = 0; row < BOARD_SIZE; ++row) {
             for (int col = 0; col < BOARD_SIZE; ++col) {
-                if (b->getPiece(row, col) == P2_PIECE) {
-                    buttons[row][col]->setEnabled(true);
-                } else {
-                    buttons[row][col]->setEnabled(false);
-                }
+                buttons[row][col]->setEnabled(b->getPiece(row, col) == P2_PIECE);
             }
         }
     }
 }
 
 void GameWindow::aiTurn() {
+    std::cout << "AI is calculating its move...\n";
+
     auto bestMoves = ai.findBestMoves(turnManager);
     if (bestMoves.empty()) {
+        std::cout << "No valid moves executed by AI. Ending turn.\n";
         turnManager.endTurn();
         startTurn();
         return;
@@ -171,7 +149,6 @@ void GameWindow::aiTurn() {
 
         // check if AI can still make another move
         if (!turnManager.isMoveLimitExceeded()) {
-            // try another move
             auto secondMoves = ai.findBestMoves(turnManager);
             if (!secondMoves.empty()) {
                 auto secondMove = secondMoves.front();
@@ -187,7 +164,6 @@ void GameWindow::aiTurn() {
         }
     }
 
-    // end turn after attempting up to two moves
     turnManager.endTurn();
     startTurn();
 }
