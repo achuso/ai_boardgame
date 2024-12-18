@@ -1,11 +1,12 @@
 #include <iostream>
 #include <array>
 #include <set>
+#include <cassert>
 
 #include "Board.h"
 
-// init board
 Board::Board() {
+    // init board
     for (auto& row : board) row.fill(EMPTY);
 
     // player 1 pieces
@@ -21,118 +22,101 @@ Board::Board() {
     board[6][0] = P2_PIECE;
 }
 
-void Board::printBoard() const {
-    for (const auto& row : board) {
-        for (int cell : row) {
-            if (cell == EMPTY) std::cout << ". ";
-            else if (cell == P1_PIECE) std::cout << "▲ ";
-            else if (cell == P2_PIECE) std::cout << "● ";
-        }
-        std::cout << "\n";
-    }
-}
-
-// move piece and check for validity/captures
-bool Board::movePiece(int player, int fromRow, int fromCol, int toRow, int toCol) {
-    // check if the piece has already been moved
-    if (movedPieces.count({fromRow, fromCol})) {
-        std::cout << "This piece has already moved this turn.\n";
+bool Board::executeMove(int player, int fromRow, int fromCol, int toRow, int toCol) {
+    if (!isValidMove(player, fromRow, fromCol, toRow, toCol)) {
         return false;
     }
-
-    if (isValidMove(player, fromRow, fromCol, toRow, toCol)) {
-        board[toRow][toCol] = board[fromRow][fromCol];
-        board[fromRow][fromCol] = EMPTY;
-
-        // track the moved piece
-        movedPieces.insert({fromRow, fromCol});
-
-        // check for captures
-        checkAndCapture(player, toRow, toCol);
-        return true;
-    }
-
-    return false;
+    board[toRow][toCol] = player;
+    board[fromRow][fromCol] = EMPTY;
+    movedPieces.insert({toRow, toCol});
+    return true;
 }
 
-// reset pieces that have moved at the end of a turn
 void Board::resetTurn() {
     movedPieces.clear();
 }
 
-bool Board::isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) const {
-    if (!inBounds(fromRow, fromCol) || !inBounds(toRow, toCol)) return false;
-    if (board[toRow][toCol] != EMPTY) return false;
-    if (fromRow != toRow && fromCol != toCol) return false;
-    if (board[fromRow][fromCol] != player) return false;
+void Board::captureDirection(int player, int row, int col, int dRow, int dCol) {
+    int opponent = (player == P1_PIECE) ? P2_PIECE : P1_PIECE;
+    int nextRow = row + dRow;
+    int nextCol = col + dCol;
 
-    return true;
+    if (inBounds(nextRow, nextCol) && board[nextRow][nextCol] == opponent) {
+        int beyondRow = nextRow + dRow;
+        int beyondCol = nextCol + dCol;
+        if (!inBounds(beyondRow, beyondCol) || board[beyondRow][beyondCol] == player) {
+            board[nextRow][nextCol] = EMPTY;
+        }
+    }
 }
 
 void Board::checkAndCapture(int player, int row, int col) {
-    int opponent = (player == P1_PIECE) ? P2_PIECE : P1_PIECE;
-
-    // capture left (between wall and opponent)
-    if (col - 1 >= 0 && board[row][col - 1] == opponent && col - 2 < 0)
-        board[row][col - 1] = EMPTY;
-
-    // capture right (between opponent and wall)
-    if (col + 1 < 7 && board[row][col + 1] == opponent && col + 2 >= 7)
-        board[row][col + 1] = EMPTY;
-
-    // surround capture left and right
-    if (col - 1 >= 0 && col + 1 < 7 && board[row][col - 1] == opponent 
-        && board[row][col + 1] == opponent)
-        board[row][col] = EMPTY;
-
-    // capture up (between wall and opponent)
-    if (row - 1 >= 0 && board[row - 1][col] == opponent && row - 2 < 0)
-        board[row - 1][col] = EMPTY;
-
-    // capture down (between opponent and wall)
-    if (row + 1 < 7 && board[row + 1][col] == opponent && row + 2 >= 7)
-        board[row + 1][col] = EMPTY;
-
-    // surround capture up and down
-    if (row - 1 >= 0 && row + 1 < 7 && board[row - 1][col] == opponent 
-        && board[row + 1][col] == opponent)
-        board[row][col] = EMPTY;
-
-    // mutual capture (rare occurrance)
-    if (row - 1 >= 0 && row + 1 < 7 && board[row - 1][col] != EMPTY 
-        && board[row + 1][col] != EMPTY && board[row - 1][col] != board[row + 1][col]) {
-        board[row - 1][col] = EMPTY;
-        board[row + 1][col] = EMPTY;
-    }
+    captureDirection(player, row, col, -1, 0); // Up
+    captureDirection(player, row, col, 1, 0);  // Down
+    captureDirection(player, row, col, 0, -1); // Left
+    captureDirection(player, row, col, 0, 1);  // Right
 }
 
 bool Board::checkGameEnd() {
-    int p1Count = 0, p2Count = 0;
+    int p1Count = countPieces(P1_PIECE);
+    int p2Count = countPieces(P2_PIECE);
 
-    for (const auto& row : board) {
-        for (int cell : row) {
-            if (cell == P1_PIECE) p1Count++;
-            else if (cell == P2_PIECE) p2Count++;
-        }
-    }
-    // Endgame conditions
     if (p1Count == 0 && p2Count == 0) {
         std::cout << "It's a Draw!\n";
         return true;
-    } 
-    else if (p1Count == 0) {
+    }
+    if (p1Count == 0) {
         std::cout << "Player 2 Wins!\n";
         return true;
-    } 
-    else if (p2Count == 0) {
+    }
+    if (p2Count == 0) {
         std::cout << "Player 1 Wins!\n";
         return true;
     }
-
     return false;
 }
 
-// Check if a cell is within bounds
+bool Board::hasExceededMoveLimit() const {
+    return movedPieces.size() >= 2; // Max two moves per turn
+}
+
+int Board::getPiece(int row, int col) const {
+    assert(inBounds(row, col) && "Attempted to access out-of-bounds cell");
+    return board[row][col];
+}
+
+int Board::getMovedPiecesSize() const {
+    return movedPieces.size();
+}
+
 bool Board::inBounds(int row, int col) const {
-    return row >= 0 && row < 7 && col >= 0 && col < 7;
+    return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+}
+
+int Board::countPieces(int player) const {
+    int count = 0;
+
+    for (const auto& row : board) {
+        for (int cell : row) {
+            if (cell == player) {
+                count++;
+            }
+        }
+    }
+
+    return count;
+}
+
+bool Board::isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) const {
+    if (!inBounds(fromRow, fromCol) || !inBounds(toRow, toCol))
+        return false;
+    if (board[fromRow][fromCol] != player)
+        return false;
+    if (board[toRow][toCol] != EMPTY) 
+        return false;
+    if (fromRow != toRow && fromCol != toCol)
+        return false;
+    if (std::abs(fromRow - toRow) > 1 || std::abs(fromCol - toCol) > 1)
+        return false;
+    return true;
 }

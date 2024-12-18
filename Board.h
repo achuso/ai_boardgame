@@ -5,25 +5,26 @@
 #include <set>
 #include "GameConstants.h"
 
-
 class Board {
 private:
-    std::array<std::array<int, 7>, 7> board;
-    std::set<std::pair<int, int>> movedPieces; // tracks pieces that have moved this turn
+    std::array<std::array<int, BOARD_SIZE>, BOARD_SIZE> board;
+    std::set<std::pair<int, int>> movedPieces;
 
     bool inBounds(int row, int col) const;
+    void captureDirection(int player, int row, int col, int dRow, int dCol);
 
 public:
     Board();
 
-    void printBoard() const;
-    bool movePiece(int player, int fromRow, int fromCol, int toRow, int toCol);
+    bool executeMove(int player, int fromRow, int fromCol, int toRow, int toCol);
     void resetTurn();
-    bool isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) const;
     void checkAndCapture(int player, int row, int col);
     bool checkGameEnd();
-    int getPiece(int row, int col) const { return board[row][col]; }
-    const std::array<std::array<int, 7>, 7>& getBoard() const { return board; }
+    bool hasExceededMoveLimit() const;
+    int getPiece(int row, int col) const;
+    int getMovedPiecesSize() const;
+    int countPieces(int player) const;
+    bool isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) const;
 };
 
 #endif
