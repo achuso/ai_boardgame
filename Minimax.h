@@ -15,11 +15,11 @@ private:
     };
 
     int evaluateBoard(const Board& board);
-    int minMax(TurnManager& turnManager, int depth, bool maximizingPlayer, int alpha, int beta); // recursive minimax with alpha-beta pruning
+    int minMax(TurnManager turnManager, int depth, bool maximizingPlayer, int alpha, int beta); 
     std::vector<Move> generateMoves(const TurnManager& turnManager, int player);
 
 public:
-    Minimax(int depth = 3); // 3 by default. offer custom user input later
+    Minimax(int depth = 3);
     std::vector<Move> findBestMoves(TurnManager& turnManager);
 };
 
