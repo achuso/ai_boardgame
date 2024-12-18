@@ -15,6 +15,7 @@ private:
 public:
     TurnManager(Board& gameBoard);
 
+    const Board& getBoard() const;
     int getCurrentPlayer() const;
     void endTurn();
     MoveResult makeMove(int fromRow, int fromCol, int toRow, int toCol);

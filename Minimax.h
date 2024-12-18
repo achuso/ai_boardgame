@@ -2,7 +2,8 @@
 #define MINIMAX_H
 
 #include <vector>
-#include "Board.h"
+#include <limits>
+#include "TurnManager.h"
 
 class Minimax {
 private:
@@ -13,13 +14,13 @@ private:
         int toRow, toCol;
     };
 
-    int evaluateBoard(const Board& board); // evaluate board and return heuristic value
-    int minMax(Board board, int depth, bool maximizingPlayer); // recursive minimax algo
-    std::vector<Move> generateMoves(const Board& board, int player); // generate all possible moves
+    int evaluateBoard(const Board& board);
+    int minMax(TurnManager& turnManager, int depth, bool maximizingPlayer, int alpha, int beta); // recursive minimax with alpha-beta pruning
+    std::vector<Move> generateMoves(const TurnManager& turnManager, int player);
 
 public:
-    Minimax(int depth = 3);
-    Move findBestMove(const Board& board); // best move for AI agent
+    Minimax(int depth = 3); // 3 by default. offer custom user input later
+    std::vector<Move> findBestMoves(TurnManager& turnManager);
 };
 
 #endif
