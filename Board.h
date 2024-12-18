@@ -19,7 +19,7 @@ public:
     void printBoard() const;
     bool movePiece(int player, int fromRow, int fromCol, int toRow, int toCol);
     void resetTurn();
-    bool isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol);
+    bool isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) const;
     void checkAndCapture(int player, int row, int col);
     bool checkGameEnd();
     int getPiece(int row, int col) const { return board[row][col]; }

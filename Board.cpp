@@ -60,7 +60,7 @@ void Board::resetTurn() {
     movedPieces.clear();
 }
 
-bool Board::isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) {
+bool Board::isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) const {
     if (!inBounds(fromRow, fromCol) || !inBounds(toRow, toCol)) return false;
     if (board[toRow][toCol] != EMPTY) return false;
     if (fromRow != toRow && fromCol != toCol) return false;
