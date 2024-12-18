@@ -26,6 +26,8 @@ public:
     MoveResult makeMove(int fromRow, int fromCol, int toRow, int toCol);
     bool isMoveLimitExceeded() const;
     Board::GameResult getGameState() const;
+
+    int getTotalMoves() const { return totalMoves; }
 };
 
 #endif
