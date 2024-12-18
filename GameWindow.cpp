@@ -128,8 +128,6 @@ void GameWindow::handleCellClick(int row, int col) {
 
 void GameWindow::startTurn() {
     if (turnManager.getCurrentPlayer() == P1_PIECE) {
-        std::cout << "AI's Turn..." << std::endl;
-
         for (int row = 0; row < BOARD_SIZE; ++row) {
             for (int col = 0; col < BOARD_SIZE; ++col) {
                 buttons[row][col]->setEnabled(false);
@@ -139,8 +137,6 @@ void GameWindow::startTurn() {
         aiTurn();
     } 
     else {
-        std::cout << "Human's Turn..." << std::endl;
-
         const Board* b = turnManager.getBoard();
         // enable only the human player's pieces to start
         for (int row = 0; row < BOARD_SIZE; ++row) {
@@ -156,11 +152,8 @@ void GameWindow::startTurn() {
 }
 
 void GameWindow::aiTurn() {
-    std::cout << "AI is calculating its move...\n";
-
     auto bestMoves = ai.findBestMoves(turnManager);
     if (bestMoves.empty()) {
-        std::cout << "No valid moves executed by AI. Ending turn.\n";
         turnManager.endTurn();
         startTurn();
         return;

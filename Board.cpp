@@ -41,10 +41,9 @@ bool Board::executeMove(int player, int fromRow, int fromCol, int toRow, int toC
         return false;
     }
 
-    board[toRow][toCol] = player;       // Move the piece
-    board[fromRow][fromCol] = EMPTY;   // Clear the original position
-    std::cout << "Board updated: (" << fromRow << ", " << fromCol << ") -> ("
-              << toRow << ", " << toCol << ")\n";
+    board[toRow][toCol] = player;
+    board[fromRow][fromCol] = EMPTY;
+
     return true;
 }
 
