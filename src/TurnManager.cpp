@@ -39,7 +39,7 @@ Board::GameResult TurnManager::getGameState() const {
     }
 
     // check the 50-move rule
-    if (totalMoves >= 50) {
+    if (totalMoves >= MAX_MOVERULE) {
         int p1Count = board.countPieces(P1_PIECE);
         int p2Count = board.countPieces(P2_PIECE);
 
