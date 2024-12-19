@@ -116,21 +116,27 @@ void Board::checkSelfCapture(int row, int col) {
     int piece = getPiece(row, col);
     if (piece == EMPTY) return; // no piece to capture
 
+    int opponent = (piece == P1_PIECE) ? P2_PIECE : P1_PIECE;
+
     // check vertical sandwich
     int upRow = row - 1;
     int downRow = row + 1;
 
-    bool verticallySandwiched = isBlocking(upRow, col) && isBlocking(downRow, col);
+    bool verticallySandwiched =
+        ((isBlocking(upRow, col) && getPiece(upRow, col) == opponent) || !inBounds(upRow, col)) &&
+        ((isBlocking(downRow, col) && getPiece(downRow, col) == opponent) || !inBounds(downRow, col));
 
-    // check horizontal sandwich
+    // ceck horizontal sandwich
     int leftCol = col - 1;
     int rightCol = col + 1;
 
-    bool horizontallySandwiched = isBlocking(row, leftCol) && isBlocking(row, rightCol);
+    bool horizontallySandwiched =
+        ((isBlocking(row, leftCol) && getPiece(row, leftCol) == opponent) || !inBounds(row, leftCol)) &&
+        ((isBlocking(row, rightCol) && getPiece(row, rightCol) == opponent) || !inBounds(row, rightCol));
 
     // if sandwiched either vertically or horizontally, remove the piece
     if (verticallySandwiched || horizontallySandwiched) {
-        board[row][col] = EMPTY; // capture the acting piece
+        board[row][col] = EMPTY;
     }
 }
 
