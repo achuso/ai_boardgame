@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <limits>
+#include <algorithm>
 #include "TurnManager.h"
 
 class Minimax {

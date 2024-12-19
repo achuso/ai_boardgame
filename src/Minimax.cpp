@@ -14,14 +14,28 @@ int Minimax::evaluateBoard(const Board& board) {
 
             if (piece == P1_PIECE || piece == P2_PIECE) {
                 int& playerScore = (piece == P1_PIECE) ? p1Score : p2Score;
+                int opponent = (piece == P1_PIECE) ? P2_PIECE : P1_PIECE;
 
                 // base score for having a piece
                 playerScore += 10;
 
                 // center bonus
-                if (row >= 2 && row <= 4 && col >= 2 && col <= 4) playerScore += 5;
+                if (row >= 2 && row <= 4 && col >= 2 && col <= 4)
+                    playerScore += (p1Score <= p2Score ? 5 : 2);
+
                 // edge penalty
-                if (row == 0 || row == 6 || col == 0 || col == 6) playerScore -= 3;
+                if (row == 0 || row == 6 || col == 0 || col == 6) 
+                    playerScore -= 3;
+
+                // check proximity to opponent pieces
+                for (int prow = 0; prow < BOARD_SIZE; ++prow) {
+                    for (int pcol = 0; pcol < BOARD_SIZE; ++pcol) {
+                        if (board.getPiece(prow, pcol) == opponent) {
+                            int distance = std::abs(prow - row) + std::abs(pcol - col);
+                            playerScore -= distance; // penalize for being far from opponents
+                        }
+                    }
+                }
 
                 // check capture potential
                 for (auto [dRow, dCol] : directions) {
@@ -34,12 +48,10 @@ int Minimax::evaluateBoard(const Board& board) {
 
                         if (adjacentPiece != piece && adjacentPiece != EMPTY) {
                             if (beyondPiece == piece) {
-                                // potential to capture an opponent piece
-                                playerScore += 15;
+                                playerScore += 15; // potential to capture
                             } 
                             else if (beyondPiece == EMPTY) {
-                                // threatened but not captured yet
-                                playerScore += 5;
+                                playerScore += 5; // threatened but not captured yet
                             }
                         }
                     }
@@ -48,12 +60,17 @@ int Minimax::evaluateBoard(const Board& board) {
         }
     }
 
+    // winning incentive
+    if (p2Score == 1) 
+        p1Score += 30; // encourage AI to capture the final piece
+
     return p1Score - p2Score;
 }
 
 std::vector<Minimax::Move> Minimax::generateMoves(const TurnManager& turnManager, int player) {
     const Board* board = turnManager.getBoard();
     std::vector<Move> moves;
+    int opponent = (player == P1_PIECE) ? P2_PIECE : P1_PIECE;
 
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
@@ -63,16 +80,39 @@ std::vector<Minimax::Move> Minimax::generateMoves(const TurnManager& turnManager
                 for (auto [dRow, dCol] : directions) {
                     int newRow = row + dRow;
                     int newCol = col + dCol;
+
                     if (board->isValidMove(player, row, col, newRow, newCol)) {
-                        moves.push_back({row, col, newRow, newCol});
-                    } 
-                    // else {
-                    //     std::cout << "Invalid move: (" << row << ", " << col << ") -> (" << newRow << ", " << newCol << ")\n";
-                    // }
+                        Move move = {row, col, newRow, newCol};
+                        // prioritize captures
+                        if (board->getPiece(newRow, newCol) == opponent) {
+                            moves.insert(moves.begin(), move); // capture moves first
+                        } 
+                        else {
+                            moves.push_back(move);
+                        }
+                    }
                 }
             }
         }
     }
+
+    // sort moves by proximity to the opponent
+    int opponentRow = -1, opponentCol = -1;
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            if (board->getPiece(row, col) == opponent) {
+                opponentRow = row;
+                opponentCol = col;
+                break;
+            }
+        }
+    }
+
+    std::sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) {
+        int distA = std::abs(a.toRow - opponentRow) + std::abs(a.toCol - opponentCol);
+        int distB = std::abs(b.toRow - opponentRow) + std::abs(b.toCol - opponentCol);
+        return distA < distB;
+    });
 
     return moves;
 }
