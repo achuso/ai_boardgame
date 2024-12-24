@@ -19,6 +19,8 @@ private:
     void captureSurroundingPieces(int row, int col);
     void checkSelfCapture(int row, int col);
 
+    [[nodiscard]] bool isOpponentOrWall(int row, int col, int currentPiece) const;
+
 public:
     enum class GameResult { Ongoing, Draw, Player1Wins, Player2Wins };
 

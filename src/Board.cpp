@@ -48,31 +48,28 @@ void Board::captureInDirection(int row, int col, int dRow, int dCol) {
 
     std::vector<std::pair<int, int>> toCapture; // track pieces to capture
 
-    // traverse in the direction and collect opponent pieces
     while (isInBounds(nextRow, nextCol)) {
         int piece = getPiece(nextRow, nextCol);
 
         if (piece == EMPTY) {
-            // break if there's an open space
+            // open space, capture invalid
             return;
         }
-        else if (piece == currentPiece) {
-            // found a piece of the current player -> validate and capture
+        if (piece == currentPiece) {
+            // found another piece of the current player -> validate capture
             for (const auto& coord : toCapture) {
                 board[coord.first][coord.second] = EMPTY;
             }
             return;
         }
-        else {
-            // found an opponent piece -> mark for potential capture
-            toCapture.emplace_back(nextRow, nextCol);
-        }
+        // found an opponent piece -> mark for potential capture
+        toCapture.emplace_back(nextRow, nextCol);
 
         nextRow += dRow;
         nextCol += dCol;
     }
 
-    // if we hit the boundary (wall) and have captured pieces, proceed
+    // if the edge of the board (wall) is reached, validate capture
     if (!isInBounds(nextRow, nextCol)) {
         for (const auto& coord : toCapture) {
             board[coord.first][coord.second] = EMPTY;
@@ -82,25 +79,34 @@ void Board::captureInDirection(int row, int col, int dRow, int dCol) {
 
 void Board::captureSurroundingPieces(int row, int col) {
     // check and capture pieces in all directions
-    captureInDirection(row, col, -1, 0); // Up
-    captureInDirection(row, col, 1, 0);  // Down
-    captureInDirection(row, col, 0, -1); // Left
-    captureInDirection(row, col, 0, 1);  // Right
+    captureInDirection(row, col, -1, 0); // up
+    captureInDirection(row, col, 1, 0);  // down
+    captureInDirection(row, col, 0, -1); // left
+    captureInDirection(row, col, 0, 1);  // right
 }
 
 void Board::checkSelfCapture(int row, int col) {
     int currentPiece = getPiece(row, col);
     if (currentPiece == EMPTY) return;
 
-    bool verticalSandwich = isOpponentPiece(row - 1, col, currentPiece) &&
-                            isOpponentPiece(row + 1, col, currentPiece);
+    // check for vertical sandwich
+    bool verticalSandwich =
+        (isOpponentPiece(row - 1, col, currentPiece) || !isInBounds(row - 1, col)) &&
+        (isOpponentPiece(row + 1, col, currentPiece) || !isInBounds(row + 1, col));
 
-    bool horizontalSandwich = isOpponentPiece(row, col - 1, currentPiece) &&
-                              isOpponentPiece(row, col + 1, currentPiece);
+    // check for horizontal sandwich
+    bool horizontalSandwich =
+        (isOpponentPiece(row, col - 1, currentPiece) || !isInBounds(row, col - 1)) &&
+        (isOpponentPiece(row, col + 1, currentPiece) || !isInBounds(row, col + 1));
 
+    // remove the piece if sandwiched
     if (verticalSandwich || horizontalSandwich) {
         board[row][col] = EMPTY;
     }
+}
+
+bool Board::isOpponentOrWall(int row, int col, int currentPiece) const {
+    return (!isInBounds(row, col)) || isOpponentPiece(row, col, currentPiece);
 }
 
 // public methods
