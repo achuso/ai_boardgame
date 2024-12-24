@@ -1,34 +1,45 @@
 #ifndef TURNMANAGER_H
 #define TURNMANAGER_H
 
-#include <set>
 #include "Board.h"
+#include "GameConstants.h"
+#include <set>
+#include <vector>
 
 class TurnManager {
 public:
     enum class MoveResult { Success, InvalidMove, MoveLimitExceeded };
 
 private:
-    Board board;  
-    int currentPlayer; 
-    std::set<std::pair<int, int>> movedPieces; 
-    int movesThisTurn; 
-    int totalMoves = 0; 
+    Board board;
+    int currentPlayer;
+    std::set<std::pair<int, int>> movedPieces;
+    std::vector<Move> moveHistory;
+    int movesThisTurn;
+    int totalMoves;
+
+    // helper methods
+    [[nodiscard]] bool validateMove(int fromRow, int fromCol, int toRow, int toCol) const;
+    void addMoveToHistory(int fromRow, int fromCol, int toRow, int toCol);
 
 public:
-    TurnManager(const Board& gameBoard);
-    TurnManager(const TurnManager& other);
-    TurnManager& operator=(const TurnManager& other);
+    explicit TurnManager(const Board& gameBoard);
 
-    const Board* getBoard() const;
-    int getCurrentPlayer() const;
+    [[nodiscard]] const Board* getBoard() const;
+    [[nodiscard]] int getCurrentPlayer() const;
+    [[nodiscard]] int getTotalMoves() const { return totalMoves; }
+    [[nodiscard]] bool hasPieceMoved(int row, int col) const;
+
+    // turn-related methods
+    void startTurn();
     void endTurn();
-    MoveResult makeMove(int fromRow, int fromCol, int toRow, int toCol);
-    bool isMoveLimitExceeded() const;
-    Board::GameResult getGameState() const;
-    bool hasPieceMoved(int row, int col) const;
 
-    int getTotalMoves() const { return totalMoves; }
+    // move-related methods
+    MoveResult makeMove(int fromRow, int fromCol, int toRow, int toCol);
+    [[nodiscard]] bool isMoveLimitExceeded() const;
+
+    // game state
+    [[nodiscard]] Board::GameResult getGameState() const;
 };
 
 #endif

@@ -1,60 +1,93 @@
-#include <iostream>
 #include "Board.h"
+#include <iostream>
+#include <cmath>
 
 Board::Board() {
-    // Initialize the board with empty cells
+    // init board
     for (auto& row : board) row.fill(EMPTY);
 
-    // Initialize Player 1's pieces
+    // init player1's pieces (AI)
     board[0][0] = P1_PIECE;
     board[2][0] = P1_PIECE;
     board[4][6] = P1_PIECE;
     board[6][6] = P1_PIECE;
 
-    // Initialize Player 2's pieces
+    // init player 2's pieces (human)
     board[0][6] = P2_PIECE;
     board[2][6] = P2_PIECE;
     board[4][0] = P2_PIECE;
     board[6][0] = P2_PIECE;
 }
 
-bool Board::inBounds(int row, int col) {
+bool Board::isInBounds(int row, int col) {
     return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
 }
 
-bool Board::isBlocking(int row, int col) const {
-    // A cell is blocking if it's out-of-bounds (wall) or contains a piece (P1 or P2)
-    if (!inBounds(row, col)) return true;
-    int piece = board[row][col];
-    return (piece == P1_PIECE || piece == P2_PIECE);
+bool Board::isOpponentPiece(int row, int col, int currentPiece) const {
+    int piece = getPiece(row, col);
+    return piece != EMPTY && piece != currentPiece;
 }
 
-int Board::getPiece(int row, int col) const {
-    if (inBounds(row, col))
-        return board[row][col];
-
-    return EMPTY; // Return EMPTY for out-of-bounds safeguard
+bool Board::isCellBlocking(int row, int col) const {
+    return !isInBounds(row, col) || getPiece(row, col) != EMPTY;
 }
 
-int Board::countPieces(int player) const {
-    int count = 0;
-    for (const auto& r : board)
-        for (int cell : r)
-            if (cell == player)
-                count++;
-    return count;
+void Board::checkAndCapture(int row, int col) {
+    // handle captures in four directions
+    captureSurroundingPieces(row, col);
+    // check if the moved piece itself is captured
+    checkSelfCapture(row, col);
 }
 
-bool Board::isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) const {
-    // Ensure the move starts from a valid position and moves to an empty space
-    if (!inBounds(fromRow, fromCol) || !inBounds(toRow, toCol)) return false;
-    if (board[fromRow][fromCol] != player) return false;
-    if (board[toRow][toCol] != EMPTY) return false;
+void Board::captureInDirection(int row, int col, int dRow, int dCol) {
+    int piece = getPiece(row, col);
+    int nextRow = row + dRow;
+    int nextCol = col + dCol;
 
-    // Restrict to horizontal/vertical adjacent moves
-    int rowDiff = std::abs(fromRow - toRow);
-    int colDiff = std::abs(fromCol - toCol);
-    return (rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1);
+    if (isOpponentPiece(nextRow, nextCol, piece)) {
+        int beyondRow = nextRow + dRow;
+        int beyondCol = nextCol + dCol;
+
+        if (isCellBlocking(beyondRow, beyondCol) || getPiece(beyondRow, beyondCol) == piece) {
+            board[nextRow][nextCol] = EMPTY; // capture opponent piece
+        }
+    }
+}
+
+void Board::captureSurroundingPieces(int row, int col) {
+    // check and capture pieces in all directions
+    captureInDirection(row, col, -1, 0); // Up
+    captureInDirection(row, col, 1, 0);  // Down
+    captureInDirection(row, col, 0, -1); // Left
+    captureInDirection(row, col, 0, 1);  // Right
+}
+
+void Board::checkSelfCapture(int row, int col) {
+    int piece = getPiece(row, col);
+    if (piece == EMPTY) return;
+
+    // check for vertical and horizontal sandwich
+    bool vertical = isOpponentPiece(row - 1, col, piece) && isOpponentPiece(row + 1, col, piece);
+    bool horizontal = isOpponentPiece(row, col - 1, piece) && isOpponentPiece(row, col + 1, piece);
+
+    if (vertical || horizontal) {
+        board[row][col] = EMPTY;
+    }
+}
+
+// public methods
+bool Board::executeMove(int player, int fromRow, int fromCol, int toRow, int toCol) {
+    if (!isValidMove(player, fromRow, fromCol, toRow, toCol)) {
+        return false;
+    }
+
+    board[toRow][toCol] = board[fromRow][fromCol];
+    board[fromRow][fromCol] = EMPTY;
+
+    captureSurroundingPieces(toRow, toCol);
+    checkSelfCapture(toRow, toCol);
+
+    return true;
 }
 
 Board::GameResult Board::checkGameEnd() const {
@@ -68,70 +101,37 @@ Board::GameResult Board::checkGameEnd() const {
     return GameResult::Ongoing;
 }
 
-bool Board::executeMove(int player, int fromRow, int fromCol, int toRow, int toCol) {
-    if (!isValidMove(player, fromRow, fromCol, toRow, toCol)) {
-        return false;
+bool Board::isValidMove(int player, int fromRow, int fromCol, int toRow, int toCol) const {
+    if (!isInBounds(fromRow, fromCol) || !isInBounds(toRow, toCol)) return false;
+    if (board[fromRow][fromCol] != player || board[toRow][toCol] != EMPTY) return false;
+
+    int rowDiff = std::abs(fromRow - toRow);
+    int colDiff = std::abs(fromCol - toCol);
+
+    return (rowDiff == 1 && colDiff == 0) || (rowDiff == 0 && colDiff == 1);
+}
+
+int Board::getPiece(int row, int col) const {
+    return isInBounds(row, col) ? board[row][col] : EMPTY;
+}
+
+int Board::countPieces(int player) const {
+    int count = 0;
+    for (const auto& row : board) {
+        for (int cell : row) {
+            if (cell == player) {
+                count++;
+            }
+        }
     }
-
-    board[toRow][toCol] = board[fromRow][fromCol];
-    board[fromRow][fromCol] = EMPTY;
-
-    return true;
+    return count;
 }
 
-void Board::captureDirection(int row, int col, int dRow, int dCol) {
-    int currentPiece = board[row][col];
-    int nextRow = row + dRow;
-    int nextCol = col + dCol;
-
-    // Check the adjacent cell
-    if (inBounds(nextRow, nextCol) && board[nextRow][nextCol] != EMPTY &&
-        board[nextRow][nextCol] != currentPiece) {
-        int beyondRow = nextRow + dRow;
-        int beyondCol = nextCol + dCol;
-
-        // Check if the cell beyond is a wall or the same piece type
-        if (!inBounds(beyondRow, beyondCol) || board[beyondRow][beyondCol] == currentPiece) {
-            board[nextRow][nextCol] = EMPTY; // Capture the middle piece
+void Board::printBoard() const {
+    for (const auto& row : board) {
+        for (int cell : row) {
+            std::cout << cell << " ";
         }
-        }
-}
-
-void Board::checkAndCapture(int row, int col) {
-    // Check in all four cardinal directions for captures
-    captureDirection(row, col, -1, 0); // up
-    captureDirection(row, col, 1, 0);  // down
-    captureDirection(row, col, 0, -1); // left
-    captureDirection(row, col, 0, 1);  // right
-
-    // Check if the current piece itself is sandwiched and should be captured
-    checkSelfCapture(row, col);
-}
-
-void Board::checkSelfCapture(int row, int col) {
-    int piece = getPiece(row, col);
-    if (piece == EMPTY) return; // No piece to capture
-
-    int opponent = (piece == P1_PIECE) ? P2_PIECE : P1_PIECE;
-
-    // Check vertical sandwich
-    int upRow = row - 1;
-    int downRow = row + 1;
-
-    bool verticallySandwiched =
-        ((isBlocking(upRow, col) && getPiece(upRow, col) == opponent) || !inBounds(upRow, col)) &&
-        ((isBlocking(downRow, col) && getPiece(downRow, col) == opponent) || !inBounds(downRow, col));
-
-    // Check horizontal sandwich
-    int leftCol = col - 1;
-    int rightCol = col + 1;
-
-    bool horizontallySandwiched =
-        ((isBlocking(row, leftCol) && getPiece(row, leftCol) == opponent) || !inBounds(row, leftCol)) &&
-        ((isBlocking(row, rightCol) && getPiece(row, rightCol) == opponent) || !inBounds(row, rightCol));
-
-    // If sandwiched either vertically or horizontally, remove the piece
-    if (verticallySandwiched || horizontallySandwiched) {
-        board[row][col] = EMPTY;
+        std::cout << "\n";
     }
 }

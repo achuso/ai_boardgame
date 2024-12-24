@@ -1,29 +1,45 @@
 #include "TurnManager.h"
-#include <iostream>
 
 TurnManager::TurnManager(const Board& gameBoard)
     : board(gameBoard), currentPlayer(P1_PIECE), movesThisTurn(0), totalMoves(0) {}
 
-TurnManager::TurnManager(const TurnManager& other)
-    : board(other.board),
-      currentPlayer(other.currentPlayer),
-      movesThisTurn(other.movesThisTurn),
-      movedPieces(other.movedPieces),
-      totalMoves(other.totalMoves) {}
-
-TurnManager& TurnManager::operator=(const TurnManager& other) {
-    if (this != &other) {
-        board = other.board;
-        currentPlayer = other.currentPlayer;
-        movesThisTurn = other.movesThisTurn;
-        movedPieces = other.movedPieces;
-        totalMoves = other.totalMoves;
-    }
-    return *this;
+void TurnManager::startTurn() {
+    movesThisTurn = 0;
+    movedPieces.clear();
 }
 
-int TurnManager::getCurrentPlayer() const {
-    return currentPlayer;
+void TurnManager::endTurn() {
+    currentPlayer = (currentPlayer == P1_PIECE) ? P2_PIECE : P1_PIECE;
+    startTurn();
+}
+
+bool TurnManager::validateMove(int fromRow, int fromCol, int toRow, int toCol) const {
+    return !isMoveLimitExceeded()
+        && !movedPieces.count({fromRow, fromCol})
+        && board.isValidMove(currentPlayer, fromRow, fromCol, toRow, toCol);
+}
+
+void TurnManager::addMoveToHistory(int fromRow, int fromCol, int toRow, int toCol) {
+    moveHistory.push_back({fromRow, fromCol, toRow, toCol});
+}
+
+TurnManager::MoveResult TurnManager::makeMove(int fromRow, int fromCol, int toRow, int toCol) {
+    if (!validateMove(fromRow, fromCol, toRow, toCol)) {
+        return MoveResult::InvalidMove;
+    }
+
+    if (board.executeMove(currentPlayer, fromRow, fromCol, toRow, toCol)) {
+        movesThisTurn++;
+        totalMoves++;
+        movedPieces.insert({toRow, toCol});
+
+        // handle all capture scenarios
+        board.checkAndCapture(toRow, toCol);
+
+        return MoveResult::Success;
+    }
+
+    return MoveResult::InvalidMove;
 }
 
 bool TurnManager::isMoveLimitExceeded() const {
@@ -33,6 +49,10 @@ bool TurnManager::isMoveLimitExceeded() const {
 
 bool TurnManager::hasPieceMoved(int row, int col) const {
     return movedPieces.count({row, col});
+}
+
+const Board* TurnManager::getBoard() const {
+    return &board;
 }
 
 Board::GameResult TurnManager::getGameState() const {
@@ -59,33 +79,6 @@ Board::GameResult TurnManager::getGameState() const {
     return Board::GameResult::Ongoing;
 }
 
-TurnManager::MoveResult TurnManager::makeMove(int fromRow, int fromCol, int toRow, int toCol) {
-    if (isMoveLimitExceeded()) {
-        return MoveResult::MoveLimitExceeded;
-    }
-
-    if (movedPieces.count({fromRow, fromCol}) || movedPieces.count({toRow, toCol})) {
-        return MoveResult::InvalidMove;
-    }
-
-    if (board.executeMove(currentPlayer, fromRow, fromCol, toRow, toCol)) {
-        movesThisTurn++;
-        totalMoves++;
-        movedPieces.insert({toRow, toCol});
-        board.checkAndCapture(toRow, toCol);
-
-        return MoveResult::Success;
-    }
-
-    return MoveResult::InvalidMove;
-}
-
-void TurnManager::endTurn() {
-    movesThisTurn = 0;
-    movedPieces.clear();
-    currentPlayer = (currentPlayer == P1_PIECE) ? P2_PIECE : P1_PIECE;
-}
-
-const Board* TurnManager::getBoard() const {
-    return &board;
+int TurnManager::getCurrentPlayer() const {
+    return currentPlayer;
 }

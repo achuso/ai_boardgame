@@ -4,69 +4,47 @@
 
 Minimax::Minimax(int depth) : maxDepth(depth) {}
 
+// evaluate the board for scoring
 int Minimax::evaluateBoard(const Board& board) {
     int p1Score = 0, p2Score = 0;
-    std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
             int piece = board.getPiece(row, col);
-
-            if (piece == P1_PIECE || piece == P2_PIECE) {
-                int& playerScore = (piece == P1_PIECE) ? p1Score : p2Score;
-
-                // Base score for having a piece
-                playerScore += 10;
-
-                // Center bonus
+            if (piece == P1_PIECE) {
+                p1Score += 10;
                 if (row >= 2 && row <= 4 && col >= 2 && col <= 4)
-                    playerScore += 5;
-
-                // Edge penalty
+                    p1Score += 6; // center bonus, nerf the modern defense
                 if (row == 0 || row == 6 || col == 0 || col == 6)
-                    playerScore -= 3;
-
-                // Check capture potential
-                for (auto [dRow, dCol] : directions) {
-                    int adjRow = row + dRow, adjCol = col + dCol;
-                    int beyondRow = adjRow + dRow, beyondCol = adjCol + dCol;
-
-                    if (board.inBounds(adjRow, adjCol) && board.inBounds(beyondRow, beyondCol)) {
-                        int adjacentPiece = board.getPiece(adjRow, adjCol);
-                        int beyondPiece = board.getPiece(beyondRow, beyondCol);
-
-                        if (adjacentPiece != piece && adjacentPiece != EMPTY && beyondPiece == piece) {
-                            playerScore += 15; // Potential to capture
-                        }
-                    }
-                }
+                        p1Score -= 2; // edge penalty (my AI would never)
+            }
+            else if (piece == P2_PIECE) {
+                p2Score += 10;
+                if (row >= 2 && row <= 4 && col >= 2 && col <= 4)
+                    p2Score += 6; // center bonus, but I ain't no Magnus Carlssen so this is redundant
+                if (row == 0 || row == 6 || col == 0 || col == 6)
+                    p2Score -= 2; // edge penalty I will gladly receive
             }
         }
     }
 
-    // Winning incentive
-    if (p2Score == 0)
-        p1Score += 50; // Encourage AI to capture all pieces
-
     return p1Score - p2Score;
 }
 
-std::vector<Minimax::Move> Minimax::generateMoves(const TurnManager& turnManager, int player) {
+// generates all valid moves for the given player
+std::vector<Move> Minimax::generateMoves(const TurnManager& turnManager, int player) {
     const Board* board = turnManager.getBoard();
     std::vector<Move> moves;
 
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
             if (board->getPiece(row, col) == player) {
-                std::vector<std::pair<int, int>> directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-
-                for (auto [dRow, dCol] : directions) {
+                for (auto [dRow, dCol] : {std::make_pair(1, 0), {-1, 0}, {0, 1}, {0, -1}}) {
                     int newRow = row + dRow;
                     int newCol = col + dCol;
 
                     if (board->isValidMove(player, row, col, newRow, newCol)) {
-                        Move move = {row, col, newRow, newCol};
-                        moves.push_back(move);
+                        moves.push_back({row, col, newRow, newCol});
                     }
                 }
             }
@@ -76,58 +54,16 @@ std::vector<Minimax::Move> Minimax::generateMoves(const TurnManager& turnManager
     return moves;
 }
 
-int Minimax::minMax(TurnManager turnManager, int depth, bool maximizingPlayer, int alpha, int beta) {
+// minimax algorithm w alpha-beta pruning
+int Minimax::minMax(const TurnManager& turnManager, int depth, bool maximizingPlayer, int alpha, int beta) {
     Board::GameResult result = turnManager.getGameState();
 
-    if (depth == 0 || result != Board::GameResult::Ongoing)
+    if (depth == 0 || result != Board::GameResult::Ongoing) {
         return evaluateBoard(*turnManager.getBoard());
-
-    int currentPlayer = turnManager.getCurrentPlayer();
-    std::vector<Move> moves = generateMoves(turnManager, currentPlayer);
-
-    if (maximizingPlayer) {
-        int maxEval = std::numeric_limits<int>::min();
-
-        for (const auto& move : moves) {
-            TurnManager tempManager = turnManager; // Copy board and state
-            if (tempManager.makeMove(move.fromRow, move.fromCol, move.toRow, move.toCol) == TurnManager::MoveResult::Success) {
-                if (tempManager.isMoveLimitExceeded()) {
-                    tempManager.endTurn();
-                }
-                int eval = minMax(tempManager, depth - 1, false, alpha, beta);
-                maxEval = std::max(maxEval, eval);
-                alpha = std::max(alpha, eval);
-                if (beta <= alpha) break; // Alpha-beta pruning
-            }
-        }
-        return maxEval;
     }
-    else {
-        int minEval = std::numeric_limits<int>::max();
 
-        for (const auto& move : moves) {
-            TurnManager tempManager = turnManager;
-            if (tempManager.makeMove(move.fromRow, move.fromCol, move.toRow, move.toCol) == TurnManager::MoveResult::Success) {
-                if (tempManager.isMoveLimitExceeded()) {
-                    tempManager.endTurn();
-                }
-                int eval = minMax(tempManager, depth - 1, true, alpha, beta);
-                minEval = std::min(minEval, eval);
-                beta = std::min(beta, eval);
-                if (beta <= alpha) break;
-            }
-        }
-        return minEval;
-    }
-}
-
-std::vector<Minimax::Move> Minimax::findBestMoves(TurnManager& turnManager) {
-    std::vector<Move> bestMoves;
-    int bestValue = std::numeric_limits<int>::min();
-    Move bestMove = {0, 0, 0, 0};
-
-    int currentPlayer = turnManager.getCurrentPlayer();
-    auto moves = generateMoves(turnManager, currentPlayer);
+    int bestValue = maximizingPlayer ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
+    auto moves = generateMoves(turnManager, turnManager.getCurrentPlayer());
 
     for (const auto& move : moves) {
         TurnManager tempManager = turnManager;
@@ -135,14 +71,50 @@ std::vector<Minimax::Move> Minimax::findBestMoves(TurnManager& turnManager) {
             if (tempManager.isMoveLimitExceeded()) {
                 tempManager.endTurn();
             }
-            int eval = minMax(tempManager, maxDepth, currentPlayer == P1_PIECE, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
-            if (eval > bestValue) {
-                bestValue = eval;
-                bestMove = move;
+
+            int eval = minMax(tempManager, depth - 1, !maximizingPlayer, alpha, beta);
+            if (maximizingPlayer) {
+                bestValue = std::max(bestValue, eval);
+                alpha = std::max(alpha, eval);
+            }
+            else {
+                bestValue = std::min(bestValue, eval);
+                beta = std::min(beta, eval);
+            }
+
+            if (beta <= alpha) {
+                break; // a-b pruning
             }
         }
     }
 
-    bestMoves.push_back(bestMove);
+    return bestValue;
+}
+
+// find the best moves for the current player
+std::vector<Move> Minimax::findBestMoves(TurnManager& turnManager) {
+    std::vector<Move> bestMoves;
+    int bestValue = std::numeric_limits<int>::min();
+
+    auto moves = generateMoves(turnManager, turnManager.getCurrentPlayer());
+    for (const auto& move : moves) {
+        TurnManager tempManager = turnManager;
+        if (tempManager.makeMove(move.fromRow, move.fromCol, move.toRow, move.toCol) == TurnManager::MoveResult::Success) {
+            if (tempManager.isMoveLimitExceeded()) {
+                tempManager.endTurn();
+            }
+
+            int eval = minMax(tempManager, maxDepth - 1, false, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+            if (eval > bestValue) {
+                bestValue = eval;
+                bestMoves.clear();
+                bestMoves.push_back(move);
+            }
+            else if (eval == bestValue) {
+                bestMoves.push_back(move);
+            }
+        }
+    }
+
     return bestMoves;
 }
