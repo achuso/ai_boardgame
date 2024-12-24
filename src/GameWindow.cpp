@@ -1,10 +1,16 @@
 #include "GameWindow.h"
-#include <QMessageBox>
 
 GameWindow::GameWindow(QWidget* parent, int aiDepth)
-    : QMainWindow(parent), board(), turnManager(board), ai(aiDepth) {
+    : QMainWindow(parent), board(), turnManager(board), ai(aiDepth), fromRow(-1), fromCol(-1) {
+
     auto* centralWidget = new QWidget(this);
-    gridLayout = new QGridLayout(centralWidget);
+    gridLayout = new QGridLayout();
+
+    auto* layout = new QVBoxLayout();
+    layout->addLayout(gridLayout);
+
+    centralWidget->setLayout(layout);
+    setCentralWidget(centralWidget);
 
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
@@ -18,9 +24,6 @@ GameWindow::GameWindow(QWidget* parent, int aiDepth)
             });
         }
     }
-
-    centralWidget->setLayout(gridLayout);
-    setCentralWidget(centralWidget);
 
     updateBoard();
     startTurn();
@@ -42,112 +45,88 @@ void GameWindow::updateBoard() {
     }
 }
 
-void GameWindow::startTurn() {
+void GameWindow::enableButtonsForPlayer(int player) {
     const Board* b = turnManager.getBoard();
-
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
-            if (b->getPiece(row, col) == turnManager.getCurrentPlayer())
-                buttons[row][col]->setEnabled(true);
-            else
-                buttons[row][col]->setEnabled(false);
+            buttons[row][col]->setEnabled(b->getPiece(row, col) == player);
         }
     }
-
-    if (turnManager.getCurrentPlayer() == P1_PIECE)
-        aiTurn();
 }
 
 void GameWindow::handleCellClick(const int row, const int col) {
-    static int fromRow = -1, fromCol = -1;
-    const Board* b = turnManager.getBoard();
-
     if (turnManager.hasPieceMoved(row, col)) {
         QMessageBox::warning(this, "Invalid Move", "This piece has already moved!");
         return;
     }
 
     if (fromRow == -1 && fromCol == -1) {
-        if (b->getPiece(row, col) == turnManager.getCurrentPlayer()) {
-            fromRow = row;
-            fromCol = col;
-            buttons[row][col]->setStyleSheet("background-color: blue;");
-
-            for (int r = 0; r < BOARD_SIZE; ++r) {
-                for (int c = 0; c < BOARD_SIZE; ++c) {
-                    if (turnManager.getBoard()->isValidMove(turnManager.getCurrentPlayer(), row, col, r, c)) {
-                        buttons[r][c]->setEnabled(true);
-                    }
-                    else {
-                        buttons[r][c]->setEnabled(false);
-                    }
-                }
-            }
-            buttons[row][col]->setEnabled(true);
+        if (turnManager.getBoard()->getPiece(row, col) == turnManager.getCurrentPlayer()) {
+            selectPiece(row, col);
         }
         else {
             QMessageBox::warning(this, "Invalid Selection", "Please select one of your pieces!");
         }
     }
     else if (fromRow == row && fromCol == col) {
-        buttons[fromRow][fromCol]->setStyleSheet("");
-        fromRow = fromCol = -1;
-
-        for (auto & button : buttons) {
-            for (auto & c : button) {
-                c->setEnabled(false);
-            }
-        }
-
-        for (int r = 0; r < BOARD_SIZE; ++r) {
-            for (int c = 0; c < BOARD_SIZE; ++c) {
-                if (b->getPiece(r, c) == turnManager.getCurrentPlayer()) {
-                    buttons[r][c]->setEnabled(true);
-                }
-            }
-        }
+        deselectPiece();
     }
     else {
         auto moveResult = turnManager.makeMove(fromRow, fromCol, row, col);
-        buttons[fromRow][fromCol]->setStyleSheet("");
+        deselectPiece();
 
         if (moveResult == TurnManager::MoveResult::Success) {
             updateBoard();
             checkGameEnd();
-            fromRow = fromCol = -1;
-
             if (turnManager.isMoveLimitExceeded()) {
                 turnManager.endTurn();
-                startTurn();
             }
-            else {
-                startTurn();
-            }
+            startTurn();
         }
         else {
             QMessageBox::warning(this, "Invalid Move", "This move is not allowed.");
-            fromRow = fromCol = -1;
         }
     }
 }
 
-void GameWindow::aiTurn() {
-    auto bestMoves = ai.findBestMoves(turnManager);
-    if (!bestMoves.empty()) {
-        auto firstMove = bestMoves.front();
-        turnManager.makeMove(firstMove.fromRow, firstMove.fromCol, firstMove.toRow, firstMove.toCol);
-        if (!turnManager.isMoveLimitExceeded() && turnManager.getGameState() == Board::GameResult::Ongoing) {
-            auto secondMoves = ai.findBestMoves(turnManager);
-            if (!secondMoves.empty()) {
-                auto secondMove = secondMoves.front();
-                turnManager.makeMove(secondMove.fromRow, secondMove.fromCol, secondMove.toRow, secondMove.toCol);
-            }
+void GameWindow::selectPiece(int row, int col) {
+    fromRow = row;
+    fromCol = col;
+    buttons[row][col]->setStyleSheet("background-color: blue;");
+    highlightValidMoves(row, col);
+}
+
+void GameWindow::deselectPiece() {
+    buttons[fromRow][fromCol]->setStyleSheet("");
+    fromRow = fromCol = -1;
+    resetButtonStates();
+    enableButtonsForPlayer(turnManager.getCurrentPlayer());
+}
+
+void GameWindow::highlightValidMoves(int row, int col) const {
+    for (int r = 0; r < BOARD_SIZE; ++r) {
+        for (int c = 0; c < BOARD_SIZE; ++c) {
+            buttons[r][c]->setEnabled(
+                turnManager.getBoard()->isValidMove(turnManager.getCurrentPlayer(), row, col, r, c)
+            );
         }
     }
-    turnManager.endTurn();
-    updateBoard();
-    checkGameEnd();
-    startTurn();
+    buttons[row][col]->setEnabled(true); // Keep the selected piece enabled
+}
+
+void GameWindow::resetButtonStates() {
+    for (auto& buttonRow : buttons) {
+        for (auto* button : buttonRow) {
+            button->setEnabled(false);
+        }
+    }
+}
+
+void GameWindow::startTurn() {
+    enableButtonsForPlayer(turnManager.getCurrentPlayer());
+    if (turnManager.getCurrentPlayer() == P1_PIECE) {
+        aiTurn();
+    }
 }
 
 void GameWindow::checkGameEnd() {
@@ -164,7 +143,30 @@ void GameWindow::checkGameEnd() {
             resultMessage = "You Win!";
         }
 
-        QMessageBox::information(this, "Game Over", resultMessage);
-        close();
+        onGameEnd(resultMessage);
     }
+}
+
+void GameWindow::onGameEnd(const QString& resultMessage) {
+    QMessageBox::information(this, "Game Over", resultMessage);
+    close();
+}
+
+void GameWindow::executeAIMove() {
+    auto bestMoves = ai.findBestMoves(turnManager);
+    if (!bestMoves.empty()) {
+        auto move = bestMoves.front();
+        turnManager.makeMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+    }
+}
+
+void GameWindow::aiTurn() {
+    executeAIMove();
+    if (!turnManager.isMoveLimitExceeded() && turnManager.getGameState() == Board::GameResult::Ongoing) {
+        executeAIMove();
+    }
+    turnManager.endTurn();
+    updateBoard();
+    checkGameEnd();
+    startTurn();
 }

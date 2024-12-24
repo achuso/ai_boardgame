@@ -1,14 +1,15 @@
+// Header file: GameWindow.h
 #ifndef GAMEWINDOW_H
 #define GAMEWINDOW_H
-
-#include <QMainWindow>
-#include <QPushButton>
-#include <QGridLayout>
-#include <QLabel>
 
 #include "TurnManager.h"
 #include "Minimax.h"
 #include "GameConstants.h"
+
+#include <QMainWindow>
+#include <QPushButton>
+#include <QGridLayout>
+#include <QMessageBox>
 
 class GameWindow : public QMainWindow {
     Q_OBJECT
@@ -19,13 +20,22 @@ private:
     Minimax ai;
     QGridLayout* gridLayout;
     QPushButton* buttons[BOARD_SIZE][BOARD_SIZE]{};
-    QPushButton* startButton{};
+
+    // track row and col of selected piece
+    int fromRow;
+    int fromCol;
 
     // helper methods
     void updateBoard();
+    void enableButtonsForPlayer(int player);
     void handleCellClick(int row, int col);
+    void selectPiece(int row, int col);
+    void deselectPiece();
+    void highlightValidMoves(int row, int col) const;
+    void resetButtonStates();
     void checkGameEnd();
-    void disableAllButtons();
+    void onGameEnd(const QString& resultMessage);
+    void executeAIMove();
     void aiTurn();
 
 public:
