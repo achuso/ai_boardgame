@@ -5,7 +5,6 @@
 #include <QPushButton>
 #include <QGridLayout>
 #include <QLabel>
-#include <QThread>
 
 #include "TurnManager.h"
 #include "Minimax.h"
@@ -20,20 +19,18 @@ private:
     Minimax ai;
     QGridLayout* gridLayout;
     QPushButton* buttons[BOARD_SIZE][BOARD_SIZE]{};
-    QLabel* turnIndicator;
-    QPushButton* startButton;
-    QThread* aiThread;
+    QPushButton* startButton{};
 
     // helper methods
     void updateBoard();
     void handleCellClick(int row, int col);
     void checkGameEnd();
+    void disableAllButtons();
     void aiTurn();
-    void onAICompleted();
 
 public:
     explicit GameWindow(QWidget* parent = nullptr, int aiDepth = 3);
-    void startTurn(); // start the current player's turn
+    void startTurn();
 };
 
 #endif
