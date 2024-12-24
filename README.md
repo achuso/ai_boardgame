@@ -2,7 +2,7 @@
 
 This project implements a simple 7x7 strategic board game with a Minimax-based AI opponent, developed for the CSE462 - Fall 2024 course.
 
-Game rules can be found within the repository in a PDF document.
+Game rules can be found within the repository in the document `Term Project.pdf`.
 
 ## Running the Project
 
@@ -12,10 +12,9 @@ Game rules can be found within the repository in a PDF document.
 - A C++ compiler (e.g., g++ or clang++)
 
 ### Build and Run
-1. Use `qmake` or `cmake` to generate build files.  
-   For example, with `qmake`:
+1. Use `qmake` and `cmake` to generate build files:
    ```bash
-   qmake ai_boardgame.pro
+   qmake
    make
    ```
 
