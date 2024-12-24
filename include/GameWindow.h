@@ -4,7 +4,8 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QGridLayout>
-#include <QMessageBox>
+#include <QLabel>
+#include <QThread>
 
 #include "TurnManager.h"
 #include "Minimax.h"
@@ -16,18 +17,23 @@ class GameWindow : public QMainWindow {
 private:
     Board board;
     TurnManager turnManager;
-    Minimax ai; // now ai is initialized with custom depth
+    Minimax ai;
     QGridLayout* gridLayout;
-    QPushButton* buttons[BOARD_SIZE][BOARD_SIZE];
+    QPushButton* buttons[BOARD_SIZE][BOARD_SIZE]{};
+    QLabel* turnIndicator;
+    QPushButton* startButton;
+    QThread* aiThread;
 
+    // helper methods
     void updateBoard();
     void handleCellClick(int row, int col);
     void checkGameEnd();
+    void aiTurn();
+    void onAICompleted();
 
 public:
-    GameWindow(QWidget* parent = nullptr, int aiDepth = 3);
-    void startTurn();
-    void aiTurn();
+    explicit GameWindow(QWidget* parent = nullptr, int aiDepth = 3);
+    void startTurn(); // start the current player's turn
 };
 
 #endif
