@@ -32,39 +32,39 @@ bool TurnManager::isMoveLimitExceeded() const {
 }
 
 Board::GameResult TurnManager::getGameState() const {
-    // check standard conditions first
+    // Check standard conditions first
     Board::GameResult result = board.checkGameEnd();
     if (result != Board::GameResult::Ongoing) {
         return result;
     }
 
-    // check the 50-move rule
+    // Check the 50-move rule
     if (totalMoves >= MAX_MOVERULE) {
         int p1Count = board.countPieces(P1_PIECE);
         int p2Count = board.countPieces(P2_PIECE);
 
         if (p1Count == p2Count) {
             return Board::GameResult::Draw;
-        } 
+        }
         else if (p1Count > p2Count) {
             return Board::GameResult::Player1Wins;
-        } 
+        }
         else {
             return Board::GameResult::Player2Wins;
         }
     }
 
-    // if none of the conditions trigger, game continues
+    // If none of the conditions trigger, game continues
     return Board::GameResult::Ongoing;
 }
 
 TurnManager::MoveResult TurnManager::makeMove(int fromRow, int fromCol, int toRow, int toCol) {
-    // check if we exceeded the move limit
+    // Check if we exceeded the move limit
     if (isMoveLimitExceeded()) {
         return MoveResult::MoveLimitExceeded;
     }
 
-    // check if the piece at the target cell has already moved
+    // Check if the piece at the target cell has already moved
     if (movedPieces.count({fromRow, fromCol}) || movedPieces.count({toRow, toCol})) {
         return MoveResult::InvalidMove;
     }
@@ -73,7 +73,7 @@ TurnManager::MoveResult TurnManager::makeMove(int fromRow, int fromCol, int toRo
         movesThisTurn++;
         totalMoves++;
         movedPieces.insert({toRow, toCol});
-        board.checkAndCapture(currentPlayer, toRow, toCol);
+        board.checkAndCapture(toRow, toCol);
 
         return MoveResult::Success;
     }
