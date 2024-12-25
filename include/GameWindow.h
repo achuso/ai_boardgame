@@ -26,8 +26,8 @@ private:
     int fromCol;
 
     // helper methods
-    void updateBoard();
-    void enableButtonsForPlayer(int player);
+    void updateBoard() const;
+    void enableButtonsForPlayer(int player) const;
     void handleCellClick(int row, int col);
     void selectPiece(int row, int col);
     void deselectPiece();

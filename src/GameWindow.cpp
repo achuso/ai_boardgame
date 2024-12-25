@@ -29,11 +29,11 @@ GameWindow::GameWindow(QWidget* parent, int aiDepth)
     startTurn();
 }
 
-void GameWindow::updateBoard() {
+void GameWindow::updateBoard() const {
     const Board* b = turnManager.getBoard();
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
-            int piece = b->getPiece(row, col);
+            const int piece = b->getPiece(row, col);
             buttons[row][col]->setStyleSheet("");
             if (piece == EMPTY)
                 buttons[row][col]->setText("");
@@ -45,7 +45,7 @@ void GameWindow::updateBoard() {
     }
 }
 
-void GameWindow::enableButtonsForPlayer(int player) {
+void GameWindow::enableButtonsForPlayer(const int player) const {
     const Board* b = turnManager.getBoard();
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
@@ -72,7 +72,7 @@ void GameWindow::handleCellClick(const int row, const int col) {
         deselectPiece();
     }
     else {
-        auto moveResult = turnManager.makeMove(fromRow, fromCol, row, col);
+        const auto moveResult = turnManager.makeMove(fromRow, fromCol, row, col);
         deselectPiece();
 
         if (moveResult == TurnManager::MoveResult::Success) {
@@ -89,7 +89,7 @@ void GameWindow::handleCellClick(const int row, const int col) {
     }
 }
 
-void GameWindow::selectPiece(int row, int col) {
+void GameWindow::selectPiece(const int row, const int col) {
     fromRow = row;
     fromCol = col;
     buttons[row][col]->setStyleSheet("background-color: blue;");
@@ -103,7 +103,7 @@ void GameWindow::deselectPiece() {
     enableButtonsForPlayer(turnManager.getCurrentPlayer());
 }
 
-void GameWindow::highlightValidMoves(int row, int col) const {
+void GameWindow::highlightValidMoves(const int row, const int col) const {
     for (int r = 0; r < BOARD_SIZE; ++r) {
         for (int c = 0; c < BOARD_SIZE; ++c) {
             buttons[r][c]->setEnabled(
@@ -153,10 +153,9 @@ void GameWindow::onGameEnd(const QString& resultMessage) {
 }
 
 void GameWindow::executeAIMove() {
-    auto bestMoves = ai.findBestMoves(turnManager);
-    if (!bestMoves.empty()) {
-        auto move = bestMoves.front();
-        turnManager.makeMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+    if (auto bestMoves = ai.findBestMoves(turnManager); !bestMoves.empty()) {
+        auto [fromRow, fromCol, toRow, toCol] = bestMoves.front();
+        turnManager.makeMove(fromRow, fromCol, toRow, toCol);
     }
 }
 
