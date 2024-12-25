@@ -28,6 +28,10 @@ public:
 
     void checkAndCapture(int row, int col);
 
+    void collectCaptures(int row, int col, int dRow, int dCol, std::vector<std::pair<int, int>> &toCapture) const;
+
+    [[nodiscard]] bool isSelfCaptured(int row, int col) const;
+
     // board ops
     bool executeMove(int player, int fromRow, int fromCol, int toRow, int toCol);
     void printBoard() const;
